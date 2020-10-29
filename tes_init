@@ -1,0 +1,312 @@
+package main
+
+import (
+	"context"
+	"encoding/gob"
+	"flag"
+	"fmt"
+	"net/http"
+	"os"
+	"strconv"
+	"strings"
+	"syscall"
+
+	"code.8labs.io/apps/data-ingest/restpoller/okta/ingestor/pkg/config"
+	"code.8labs.io/apps/data-ingest/restpoller/okta/ingestor/pkg/consts"
+	"code.8labs.io/apps/data-ingest/restpoller/okta/ingestor/pkg/credentials"
+	"code.8labs.io/apps/data-ingest/restpoller/okta/ingestor/pkg/oktaapi"
+	"code.8labs.io/apps/data-ingest/restpoller/okta/ingestor/pkg/runtimehelper"
+	rpconfig "code.8labs.io/apps/data-ingest/restpollerv2/pkg/config"
+	rplogging "code.8labs.io/apps/data-ingest/restpollerv2/pkg/logging"
+	"code.8labs.io/apps/data-ingest/restpollerv2/pkg/rediswrapper"
+	rpserver "code.8labs.io/apps/data-ingest/restpollerv2/pkg/server"
+	"code.8labs.io/apps/data-ingest/restpollerv2/pkg/worker"
+	"code.8labs.io/apps/data-ingest/restpollerv2/pkg/worker/sinks"
+	messaging "code.8labs.io/platform/sdks/go/messaging/v2"
+	"code.8labs.io/platform/sdks/go/vaultwrapper"
+	"code.8labs.io/platform/sdks/go/viperidae"
+	health "github.com/AppsFlyer/go-sundheit"
+	"github.com/gomodule/redigo/redis"
+	"github.com/oklog/run"
+	"github.com/rs/zerolog"
+)
+
+//To store Configurations and call Init Methods for Okta-Connector
+type initIngestor struct {
+	ctx       context.Context
+	logger    zerolog.Logger
+	oktaConf  config.IngestorConfig
+	rpConf    rpconfig.RPConfig
+	vwConf    vaultwrapper.VaultConfig
+	redisPool *redis.Pool
+}
+
+func (ing *initIngestor) exec() error {
+
+	var ctxCancel context.CancelFunc
+	ing.ctx, ctxCancel = context.WithCancel(context.Background())
+	defer ctxCancel()
+
+	gob.Register(map[string]interface{}{})
+
+	err := ing.initConf()
+
+	if err != nil {
+		return fmt.Errorf("Error initializing config: %w", err)
+	}
+
+	if ing.oktaConf.OktaIngestor.Debug {
+		ing.logger = ing.logger.Level(zerolog.DebugLevel)
+	}
+
+	rplogging.SetMachineryLoggers(ing.logger)
+
+	ing.redisPool = rediswrapper.NewRedisPool(ing.rpConf.RestPoller.RedisURL)
+
+	startupProducer, shutdownProducer, producer, err := ing.initKafka()
+
+	if err != nil {
+		return fmt.Errorf("Error initializing kafka producer: %w", err)
+	}
+
+	vw, err := ing.initVault()
+	if err != nil {
+		return fmt.Errorf("Error initializing Vault: %w", err)
+	}
+
+	startupPoller, shutdownPoller, err := ing.initPoller(producer, vw)
+	if err != nil {
+		return fmt.Errorf("Error initializing RestPoller: %w", err)
+	}
+
+	startupHealthCheck, shutdownHealthCheck, err := ing.initHealthCheck(ing.oktaConf.OktaIngestor.HealthCheckPort, vw)
+	if err != nil {
+		return fmt.Errorf("Error initializing health check: %w", err)
+	}
+
+	var g run.Group
+
+	if startupProducer != nil && shutdownProducer != nil {
+		g.Add(startupProducer, shutdownProducer)
+	}
+
+	g.Add(startupPoller, shutdownPoller)
+	g.Add(startupHealthCheck, shutdownHealthCheck)
+	g.Add(run.SignalHandler(ing.ctx, syscall.SIGINT, syscall.SIGTERM))
+
+	return g.Run()
+}
+
+//initialize configuration for Okta, restpoller
+func (ing *initIngestor) initConf() (err error) {
+	ingestorConfigName, rpConfigName, paths := ing.configInfo()
+	ing.oktaConf, err = config.Load(ingestorConfigName, paths...)
+	if err != nil {
+		return fmt.Errorf("Error loading okta configuration: %w", err)
+	}
+
+	ing.rpConf, err = rpconfig.Load(rpConfigName, paths...)
+	if err != nil {
+		return fmt.Errorf("Error loading restpoller configuration: %w", err)
+	}
+
+	if err := viperidae.Load(rpConfigName, paths, &ing.vwConf, "mapstructure"); err != nil {
+		return fmt.Errorf("Error loading vault configuration: %w", err)
+	}
+
+	memoryLimitMBStr, found := os.LookupEnv("MEMORY_LIMIT_MB")
+	if found {
+		memoryLimitMB, err := strconv.Atoi(memoryLimitMBStr)
+		if err != nil {
+			return fmt.Errorf("Error while converting str to int: %w", err)
+		}
+		ing.vwConf.VaultWrapper.Cache.HardMaxCacheSize = int(float32(memoryLimitMB) * .75)
+	}
+	return nil
+}
+
+//read configuration files path, restpoller config name, okta config names from env or as a commandline argument
+func (ing *initIngestor) configInfo() (ingestorConfName, rpConfigName string, configPaths []string) {
+	envOrFlag := func(envName, flagName, defaultV, description string) *string {
+		flagStr := flag.String(flagName, defaultV, description)
+		if v, found := os.LookupEnv(envName); found {
+			return &v
+		}
+		return flagStr
+	}
+
+	ingestorConfNamePtr := envOrFlag("OKTA_CONFIG_NAME", "okta-config-name", "restpoller.okta", "actual name of the config file with Okta settings, without extensions")
+	rpConfigNamePtr := envOrFlag("RP_CONFIG_NAME", "config-name", "restpoller.manager", "actual name of the restpollerv2 config file, without extensions")
+	configPathsPtr := envOrFlag("CONFIG_PATH", "config-path", "config", "semicolon-separated list of paths to search for config")
+
+	flag.Parse()
+
+	return *ingestorConfNamePtr, *rpConfigNamePtr, strings.Split(*configPathsPtr, ";")
+}
+
+// function initialize Kafka if enabled in the cofiguration else, return nil
+func (ing *initIngestor) initKafka() (startupProducer func() error, shutdownProducer func(error), mq messaging.MessageQueue, err error) {
+
+	if ing.rpConf.RestPoller.Server.Worker != nil && ing.rpConf.RestPoller.Server.Worker.Sink.Kafka != nil {
+		producer, err := sinks.NewKafkaProducer(ing.ctx, *ing.rpConf.RestPoller.Server.Worker.Sink.Kafka, ing.oktaConf.OktaIngestor.Debug)
+		if err != nil {
+			return nil, nil, nil, fmt.Errorf("could not initialize kafka producer: %w", err)
+		}
+
+		startupProducer = func() error {
+			ing.logger.Info().Msg("starting kafka producer...")
+			return producer.RunProducer()
+		}
+
+		shutdownProducer = func(error) {
+			ing.logger.Info().Msg("shutting down kafka producer...")
+			if err := producer.Close(); err != nil {
+				ing.logger.Error().Err(err).Msg("could not gracefully shut down kafka producer")
+			}
+		}
+
+		return startupProducer, shutdownProducer, producer, nil
+	}
+
+	return nil, nil, nil, nil
+}
+
+// initialize vault if eabled in cofiguration else return nil
+func (ing *initIngestor) initVault() (*vaultwrapper.VaultWrapper, error) {
+
+	if ing.rpConf.RestPoller.Server.Worker != nil {
+		vw, err := vaultwrapper.New(ing.logger, ing.vwConf)
+		if err != nil {
+			return nil, fmt.Errorf("could not initialize vaultwrapper: %w", err)
+		}
+		return vw, nil
+	}
+
+	return nil, nil
+}
+
+//initialize either poller manager or worker according to the configuration and return startup and shutdown functions to be used by the runner
+func (ing *initIngestor) initPoller(producer messaging.MessageQueue, vw *vaultwrapper.VaultWrapper) (startupPoller func() error, shutdownPoller func(error), err error) {
+
+	srv, err := rpserver.New(ing.logger, ing.rpConf)
+	if err != nil {
+		return nil, nil, fmt.Errorf("could not initialize server: %w", err)
+	}
+
+	var runPoller func() error
+	var closePoller func() error
+
+	if ing.rpConf.RestPoller.Server.Manager != nil {
+		runPoller, closePoller, err = ing.initManager(*ing.rpConf.RestPoller.Server.Manager, srv)
+		if err != nil {
+			return nil, nil, fmt.Errorf("could not initialize manager: %w", err)
+		}
+	} else if ing.rpConf.RestPoller.Server.Worker != nil {
+		runPoller, closePoller, err = ing.initWorker(producer, vw, srv)
+		if err != nil {
+			return nil, nil, fmt.Errorf("could not initialize worker: %w", err)
+		}
+	} else {
+		panic("config should have verified that either Manager or Worker was defined")
+	}
+
+	startupPoller = func() error {
+		ing.logger.Info().Msg("starting poller")
+		return runPoller()
+	}
+	shutdownPoller = func(error) {
+		ing.logger.Info().Msg("shutting down poller")
+		if err := closePoller(); err != nil {
+			ing.logger.Error().Err(err).Msg("could not gracefully shut down restpoller")
+		}
+	}
+
+	return startupPoller, shutdownPoller, nil
+}
+
+//initialize the manager - manager create and seed the jobs in Redis queue to be used by Worker
+func (ing *initIngestor) initManager(mgrConf rpconfig.ManagerConfig, srv *rpserver.Server) (runManager, closeManager func() error, err error) {
+
+	// kvCache, err := rediswrapper.NewKVCache(ing.logger, ing.redisPool, rpconsts.PrefixName)
+	kvCache, err := rediswrapper.NewKVCache(ing.logger, ing.redisPool, consts.PrefixName)
+
+	if err != nil {
+		return nil, nil, fmt.Errorf("could not initialize kv cache: %w", err)
+	}
+
+	scanner := rediswrapper.NewScanner(kvCache, mgrConf.IterCount)
+	mgr := srv.Manager(ing.redisPool, scanner)
+	return mgr.Run, mgr.Close, nil
+}
+
+//initialize the worker - Worker's job is to gets the jobs from Redis queue, connect to Okta using OAuth and pull the event/user data from Okta API
+func (ing *initIngestor) initWorker(producer messaging.MessageQueue, vw *vaultwrapper.VaultWrapper, srv *rpserver.Server) (runWorker,
+	closeWorker func() error, err error) {
+
+	api, err := ing.initAPI()
+	if err != nil {
+		return nil, nil, fmt.Errorf("could not initialize API for worker: %w", err)
+	}
+	tenantPopulator, err := worker.NewTenantPopulator(ing.logger, ing.rpConf.RestPoller.Server.Worker.TenantService, vw)
+	if err != nil {
+		return nil, nil, fmt.Errorf("could not initialize tenant populator for worker: %w", err)
+	}
+	sink := ing.initSink(ing.rpConf.RestPoller.Server.Worker.Sink, producer)
+	wkr := srv.Worker(api, tenantPopulator, sink, ing.redisPool)
+	return wkr.Run, wkr.Close, nil
+}
+
+//initialize Okta API object
+func (ing *initIngestor) initAPI() (*oktaapi.OktaAPI, error) {
+	oktaAccessToken := make(map[string]credentials.OktaAccessToken) //to store per tenant private key, like map[ctpxid]JWTAuth
+	tAPI := oktaapi.OktaAPI{
+		Logger:  ing.logger,
+		Tmpl:    ing.oktaConf,
+		JWTAuth: oktaAccessToken,
+		// HTTPRetriever:          ing.initEventRetrievers(),
+		HTTPRetrieverInterface: oktaapi.NewHTTPRetriever(ing.initEventRetrievers()),
+		Context:                ing.ctx,
+	}
+	return &tAPI, nil
+}
+
+func (ing *initIngestor) initEventRetrievers() *oktaapi.HTTPRetriever {
+	var httpRetriever oktaapi.HTTPRetriever
+	oauth := ing.oktaConf.OktaIngestor.OAuth
+	if oauth.HTTPTimeout != 0 {
+		httpRetriever = oktaapi.HTTPRetriever{
+			Logger:         ing.logger,
+			ReqHandler:     &http.Client{Timeout: oauth.HTTPTimeout},
+			RequestTimeout: oauth.HTTPTimeout,
+			QueryLimit:     oauth.QueryLimit,
+			URLPath:        oauth.SystemLogURI,
+		}
+	}
+	return &httpRetriever
+}
+
+//Initialize the kafka/logging sink according to the configuration
+func (ing *initIngestor) initSink(sinkConf rpconfig.SinkConfig, producer messaging.MessageQueue) sinks.Sink {
+
+	switch {
+	case sinkConf.Logging != nil:
+		return sinks.NewLoggingSink(ing.logger, *sinkConf.Logging)
+	case sinkConf.Kafka != nil:
+		return sinks.NewKafkaSink(ing.logger, producer)
+	default:
+		panic("configuration should have enforced defining exactly one sink")
+	}
+}
+
+//Initialize the the healthcheck services for Vault, Redis
+func (ing *initIngestor) initHealthCheck(healthCheckPort int, vw *vaultwrapper.VaultWrapper) (startupHealthCheck func() error, shutdownHealthCheck func(error), err error) {
+
+	var readinessChecks, livenessChecks []*health.Config
+	if vw != nil {
+		readinessChecks = append(readinessChecks, runtimehelper.VaultCheck(vw.Client))
+	}
+
+	livenessChecks = append(livenessChecks, runtimehelper.RedisCheck(ing.redisPool))
+
+	return runtimehelper.InitHealthChecks(ing.logger, healthCheckPort, readinessChecks, livenessChecks)
+}

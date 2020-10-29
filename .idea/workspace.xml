@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="501e5c6c-370d-4ce7-813c-99bf0b4c1e20" name="Default Changelist" comment="" />
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ComposerSettings">
+    <execution />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Go File" />
+      </list>
+    </option>
+  </component>
+  <component name="GOROOT" path="/usr/local/go" />
+  <component name="GoLibraries">
+    <option name="indexEntireGoPath" value="false" />
+  </component>
+  <component name="JupyterTrust" id="59839546-7012-4846-ba0c-c599246094aa" />
+  <component name="ProjectId" id="1iKekJ2IEI5rNj7bqXM4OJmDLx9" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">
+    <property name="DefaultGoTemplateProperty" value="Go File" />
+    <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
+    <property name="WebServerToolWindowFactoryState" value="false" />
+    <property name="aspect.path.notification.shown" value="true" />
+    <property name="go.import.settings.migrated" value="true" />
+    <property name="go.sdk.automatically.set" value="true" />
+    <property name="go.tried.to.enable.integration.vgo.integrator" value="true" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+    <property name="node.js.detected.package.eslint" value="true" />
+    <property name="node.js.detected.package.tslint" value="true" />
+    <property name="node.js.path.for.package.eslint" value="project" />
+    <property name="node.js.path.for.package.tslint" value="project" />
+    <property name="node.js.selected.package.eslint" value="(autodetect)" />
+    <property name="node.js.selected.package.tslint" value="(autodetect)" />
+    <property name="nodejs_package_manager_path" value="npm" />
+  </component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/downstream" />
+      <recent name="$PROJECT_DIR$" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/client" />
+      <recent name="$PROJECT_DIR$" />
+      <recent name="$PROJECT_DIR$/grpc/proto" />
+    </key>
+  </component>
+  <component name="RunManager" selected="Go Test.TestViewNetworkMembers_ShouldSuccess in interview/service">
+    <configuration name="TestGetSharedInterests_shouldReturnContactDetails in interview/service" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
+      <module name="test" />
+      <working_directory value="$PROJECT_DIR$/service" />
+      <parameters value=" -testify.m ^TestGetSharedInterests_shouldReturnContactDetails$" />
+      <framework value="gotest" />
+      <kind value="PACKAGE" />
+      <package value="interview/service" />
+      <directory value="$PROJECT_DIR$" />
+      <filePath value="$PROJECT_DIR$" />
+      <method v="2" />
+    </configuration>
+    <configuration name="TestViewNetworkMembers_ShouldReturnAnErrorIfExecuteContactDownstreamReturnsAnError in interview/service" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
+      <module name="test" />
+      <working_directory value="$PROJECT_DIR$/service" />
+      <parameters value=" -testify.m ^TestViewNetworkMembers_ShouldReturnAnErrorIfExecuteContactDownstreamReturnsAnError$" />
+      <framework value="gotest" />
+      <kind value="PACKAGE" />
+      <package value="interview/service" />
+      <directory value="$PROJECT_DIR$" />
+      <filePath value="$PROJECT_DIR$" />
+      <method v="2" />
+    </configuration>
+    <configuration name="TestViewNetworkMembers_ShouldReturnAnErrorIfExecuteInterestsDownstreamReturnsAnError in interview/service" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
+      <module name="test" />
+      <working_directory value="$PROJECT_DIR$/service" />
+      <parameters value=" -testify.m ^TestViewNetworkMembers_ShouldReturnAnErrorIfExecuteInterestsDownstreamReturnsAnError$" />
+      <framework value="gotest" />
+      <kind value="PACKAGE" />
+      <package value="interview/service" />
+      <directory value="$PROJECT_DIR$" />
+      <filePath value="$PROJECT_DIR$" />
+      <method v="2" />
+    </configuration>
+    <configuration name="TestViewNetworkMembers_ShouldReturnAnErrorIfExecuteNetworkDownstreamReturnsAnError in interview/service" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
+      <module name="test" />
+      <working_directory value="$PROJECT_DIR$/service" />
+      <parameters value=" -testify.m ^TestViewNetworkMembers_ShouldReturnAnErrorIfExecuteNetworkDownstreamReturnsAnError$" />
+      <framework value="gotest" />
+      <kind value="PACKAGE" />
+      <package value="interview/service" />
+      <directory value="$PROJECT_DIR$" />
+      <filePath value="$PROJECT_DIR$" />
+      <method v="2" />
+    </configuration>
+    <configuration name="TestViewNetworkMembers_ShouldSuccess in interview/service" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
+      <module name="test" />
+      <working_directory value="$PROJECT_DIR$/service" />
+      <parameters value=" -testify.m ^TestViewNetworkMembers_ShouldSuccess$" />
+      <framework value="gotest" />
+      <kind value="PACKAGE" />
+      <package value="interview/service" />
+      <directory value="$PROJECT_DIR$" />
+      <filePath value="$PROJECT_DIR$" />
+      <method v="2" />
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Go Test.TestViewNetworkMembers_ShouldSuccess in interview/service" />
+        <item itemvalue="Go Test.TestViewNetworkMembers_ShouldReturnAnErrorIfExecuteInterestsDownstreamReturnsAnError in interview/service" />
+        <item itemvalue="Go Test.TestViewNetworkMembers_ShouldReturnAnErrorIfExecuteContactDownstreamReturnsAnError in interview/service" />
+        <item itemvalue="Go Test.TestViewNetworkMembers_ShouldReturnAnErrorIfExecuteNetworkDownstreamReturnsAnError in interview/service" />
+        <item itemvalue="Go Test.TestGetSharedInterests_shouldReturnContactDetails in interview/service" />
+      </list>
+    </recent_temporary>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="501e5c6c-370d-4ce7-813c-99bf0b4c1e20" name="Default Changelist" comment="" />
+      <created>1601660852276</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1601660852276</updated>
+      <workItem from="1601660853738" duration="1461000" />
+      <workItem from="1601985236480" duration="3099000" />
+      <workItem from="1602355111080" duration="6235000" />
+      <workItem from="1602645246929" duration="2505000" />
+      <workItem from="1602660339065" duration="3240000" />
+      <workItem from="1602937626406" duration="427000" />
+      <workItem from="1602938082474" duration="2199000" />
+      <workItem from="1602945830694" duration="3081000" />
+      <workItem from="1603726506277" duration="7412000" />
+      <workItem from="1603807686307" duration="27025000" />
+      <workItem from="1603877183190" duration="3000" />
+      <workItem from="1603877220889" duration="628000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="VgoProject">
+    <integration-enabled>true</integration-enabled>
+  </component>
+  <component name="WindowStateProjectService">
+    <state width="1807" height="278" key="GridCell.Tab.0.bottom" timestamp="1603876274256">
+      <screen x="67" y="27" width="1853" height="1053" />
+    </state>
+    <state width="1807" height="278" key="GridCell.Tab.0.bottom/67.27.1853.1053@67.27.1853.1053" timestamp="1603876274256" />
+    <state width="1807" height="278" key="GridCell.Tab.0.center" timestamp="1603876274255">
+      <screen x="67" y="27" width="1853" height="1053" />
+    </state>
+    <state width="1807" height="278" key="GridCell.Tab.0.center/67.27.1853.1053@67.27.1853.1053" timestamp="1603876274255" />
+    <state width="1807" height="278" key="GridCell.Tab.0.left" timestamp="1603876274255">
+      <screen x="67" y="27" width="1853" height="1053" />
+    </state>
+    <state width="1807" height="278" key="GridCell.Tab.0.left/67.27.1853.1053@67.27.1853.1053" timestamp="1603876274255" />
+    <state width="1807" height="278" key="GridCell.Tab.0.right" timestamp="1603876274256">
+      <screen x="67" y="27" width="1853" height="1053" />
+    </state>
+    <state width="1807" height="278" key="GridCell.Tab.0.right/67.27.1853.1053@67.27.1853.1053" timestamp="1603876274256" />
+    <state x="657" y="253" width="672" height="677" key="run.anything.popup" timestamp="1603875640638">
+      <screen x="67" y="27" width="1853" height="1053" />
+    </state>
+    <state x="657" y="253" width="672" height="677" key="run.anything.popup/67.27.1853.1053@67.27.1853.1053" timestamp="1603875640638" />
+    <state x="656" y="257" width="672" height="678" key="search.everywhere.popup" timestamp="1603821385698">
+      <screen x="67" y="27" width="1853" height="1053" />
+    </state>
+    <state x="656" y="257" width="672" height="678" key="search.everywhere.popup/67.27.1853.1053@67.27.1853.1053" timestamp="1603821385698" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$PROJECT_DIR$/service/contact_service_test.go</url>
+          <line>12</line>
+          <option name="timeStamp" value="1" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$PROJECT_DIR$/service/intrest_service_test.go</url>
+          <line>27</line>
+          <option name="timeStamp" value="2" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
+  </component>
+  <component name="com.intellij.coverage.CoverageDataManagerImpl">
+    <SUITE FILE_PATH="coverage/test$TestGetCommonContacts_shouldReturnContactDetails_in_interview_service.out" NAME="TestGetCommonContacts_shouldReturnContactDetails in interview/service Coverage Results" MODIFIED="1603861570364" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="GoCoverage" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" />
+    <SUITE FILE_PATH="coverage/test$TestGetSharedInterests_shouldReturnContactDetails_in_interview_service.out" NAME="TestGetSharedInterests_shouldReturnContactDetails in interview/service Coverage Results" MODIFIED="1603872493547" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="GoCoverage" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" />
+  </component>
+</project>
